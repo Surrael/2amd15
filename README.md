@@ -2,10 +2,10 @@
 
 ## Prerequisites
 
-> Java 11
-> Spark
-> Maven
-> Downloaded `plays.csv` dataset and put it in the root directory of the project.
+* Java 11
+* Spark
+* Maven
+* Downloaded `plays.csv` dataset from canvas and put it in the root directory of the project.
 
 ## Building and running
 
