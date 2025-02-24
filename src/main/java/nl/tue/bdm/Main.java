@@ -8,7 +8,6 @@ import org.apache.spark.sql.SparkSession;
 public class Main {
   public static void main(String[] args) {
 
-    /* Dataframe */
     SparkSession spark = SparkSession
         .builder()
         .appName("2AMD15")
