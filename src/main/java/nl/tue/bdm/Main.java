@@ -41,26 +41,26 @@ public class Main {
 
     // Create pairs for the keys, where the values are
     //    the a pair of 1 and the rating
-    JavaPairRDD<String, Tuple2<Integer, Integer>> ratingPairs = onlyRatings.mapToPair(s -> 
-          new Tuple2<>(s.split(",")[0], new Tuple2<>(1, Integer.parseInt(s.split(",")[2]))));
+    JavaPairRDD<Integer, Tuple2<Integer, Integer>> ratingPairs = onlyRatings.mapToPair(s -> 
+          new Tuple2<>(Integer.parseInt(s.split(",")[0]), new Tuple2<>(1, Integer.parseInt(s.split(",")[2]))));
     ratingPairs.take(10).forEach(System.out::println);
 
     // Create pairs for the keys, where the values are
     //    the a pair of #ratings and the rating
-    JavaPairRDD<String, Tuple2<Integer, Integer>> ratingsCount = ratingPairs.reduceByKey((l, r) -> 
+    JavaPairRDD<Integer, Tuple2<Integer, Integer>> ratingsCount = ratingPairs.reduceByKey((l, r) -> 
       new Tuple2<>(l._1 + r._1, l._2 + r._2));
     ratingsCount.take(10).forEach(System.out::println);
 
     // Filter users with more than 10 ratings
-    JavaPairRDD<String, Tuple2<Integer, Integer>> ratingsCountFiltered = ratingsCount.filter(s -> s._2._1 >= 10);
+    JavaPairRDD<Integer, Tuple2<Integer, Integer>> ratingsCountFiltered = ratingsCount.filter(s -> s._2._1 >= 10);
     ratingsCountFiltered.take(10).forEach(System.out::println);
 
     // Get the average ratings
-    JavaPairRDD<String, Float> averageRatings = ratingsCountFiltered.mapValues(s -> s._2 / (float)s._1);
+    JavaPairRDD<Integer, Float> averageRatings = ratingsCountFiltered.mapValues(s -> s._2 / (float)s._1);
     averageRatings.take(10).forEach(System.out::println);
 
     // Get the highest average rating
-    Tuple2<String, Float> highestAverageRating = averageRatings.reduce((x ,y) -> {if (x._2 >= y._2) {return x;} else {return y;}});
+    Tuple2<Integer, Float> highestAverageRating = averageRatings.reduce((x ,y) -> {if (x._2 >= y._2) {return x;} else {return y;}});
     System.out.println(highestAverageRating);
 
     // For me :)
