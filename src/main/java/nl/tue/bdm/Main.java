@@ -22,31 +22,39 @@ public class Main {
         .master("local[*]")
         .getOrCreate();
 
-    Dataset<Row> df = spark.read().csv("plays.csv");
+    Dataset<Row> df = spark.read().csv("plays.csv")
+      .toDF("user_id", "song_id");        
     df.show(10);
 
     JavaRDD<String> lines = spark.read().textFile("plays.csv").javaRDD();
     lines.take(10).forEach(System.out::println);
 
-
     // Write code in Spark to find the id of the song that was played the most times in the dataset. 
     // If more than one such song exists with an equal number of plays, return all of them.
 
-    // Get tuples of (songID, 1)
-    JavaPairRDD<Integer, Integer> songs = lines.mapToPair(x -> new Tuple2<Integer, Integer>(Integer.valueOf(x.split(",")[1]), 1));
-    songs.take(10).forEach(System.out::println);
+    df.createOrReplaceTempView("plays");
+    Dataset<Row> songCounts = spark.sql(
+        "SELECT song_id, COUNT(song_id) as count " +
+            "FROM plays " +
+            "GROUP BY song_id ");
+    songCounts.show(10);
 
-    // Add up the amount of times the song was listened to
-    JavaPairRDD<Integer, Integer> songAmount = songs.reduceByKey((a,b) -> a + b);
-    songAmount.take(10).forEach(System.out::println);
+    songCounts.createOrReplaceTempView("countedPlays");
 
-    // Get the max
-    Integer maxAmount = songAmount.reduce((a,b) -> { if (a._2 > b._2) {return a;} else {return b;} })._2;
-    System.out.println(maxAmount);
+    Dataset<Row> countMax = spark.sql(
+        "SELECT MAX(count) as max " +
+            "FROM countedPlays " );
+    countMax.show(1);
+
+    Long maxValue = (Long) countMax.collectAsList().get(0).get(0);    
+    System.out.println(maxValue);
 
     // Get the values that match the max
-    JavaPairRDD<Integer, Integer> result = songAmount.filter(a -> (a._2 == maxAmount));
-    result.take(10).forEach(System.out::println);
+    Dataset<Row> maxSongs = spark.sql(
+        "SELECT song_id, count " +
+            "FROM countedPlays " +
+            "WHERE count == " + maxValue );
+            maxSongs.show(10);
 
     System.out.println("Press ENTER to close...");
     try {
