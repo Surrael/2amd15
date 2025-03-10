@@ -59,6 +59,7 @@ public class Main {
     JavaPairRDD<Integer, Float> averageRatings = ratingsCountFiltered.mapValues(s -> s._2 / (float)s._1);
     averageRatings.take(10).forEach(System.out::println);
 
+    // Question 3
     // Get the highest average rating
     Tuple2<Integer, Float> highestAverageRating = averageRatings.reduce((x ,y) -> {
       if (x._2 >= y._2) {
