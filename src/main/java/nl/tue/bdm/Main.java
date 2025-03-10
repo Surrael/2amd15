@@ -45,7 +45,7 @@ public class Main {
     System.out.println(maxAmount);
 
     // Get the values that match the max
-    JavaPairRDD<Integer, Integer> result = songAmount.filter(a -> (a._2 == maxAmount));
+    JavaPairRDD<Integer, Integer> result = songAmount.filter(x -> (x._2.equals(maxAmount)));
     result.take(10).forEach(System.out::println);
 
     System.out.println("Press ENTER to close...");
