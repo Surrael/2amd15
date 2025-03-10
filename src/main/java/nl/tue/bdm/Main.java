@@ -8,6 +8,9 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import scala.Tuple2;
 
 public class Main {
@@ -36,16 +39,14 @@ public class Main {
     // Add up the amount of times the song was listened to
     JavaPairRDD<Integer, Integer> songAmount = songs.reduceByKey((a,b) -> a + b);
     songAmount.take(10).forEach(System.out::println);
-    JavaPairRDD<Integer, Integer> songAmountMax = songAmount;
 
     // Get the max
-    Integer maxAmount = songAmountMax.reduce((a,b) -> { if (a._2 > b._2) {return a;} else {return b;} })._2;
+    Integer maxAmount = songAmount.reduce((a,b) -> { if (a._2 > b._2) {return a;} else {return b;} })._2;
     System.out.println(maxAmount);
 
     // Get the values that match the max
-    JavaPairRDD<Integer, Integer> result = songAmount.filter(a -> a._2 == maxAmount);
+    JavaPairRDD<Integer, Integer> result = songAmount.filter(a -> (a._2 == maxAmount));
     result.take(10).forEach(System.out::println);
-
 
     System.out.println("Press ENTER to close...");
     try {
