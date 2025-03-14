@@ -1,8 +1,6 @@
 package nl.tue.bdm;
 
 import scala.Tuple2;
-import java.io.Serializable;
-import java.util.Comparator;
 import java.util.Arrays;
 import java.util.List;
 
