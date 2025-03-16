@@ -20,7 +20,7 @@ public class CountMinSketch implements Serializable {
 
   public static void init(double eps, double conf) {
     rows = (int) Math.ceil(2 / eps);
-    width = (int) Math.ceil(-Math.log(1 - conf) / Math.log(2)) * 1000;
+    width = (int) Math.ceil(-Math.log(1 - conf) / Math.log(2));
     initHashFunctions(rows);
   }
 

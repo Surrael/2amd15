@@ -2,8 +2,8 @@ package nl.tue.bdm;
 
 import scala.Tuple2;
 import java.util.List;
-import java.util.Optional;
 
+import org.apache.spark.api.java.Optional;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.streaming.Durations;
@@ -58,6 +58,8 @@ public class Main {
     statefulSketch.foreachRDD(rdd -> {
       int songId = 12157;
       CountMinSketch totalSketch = rdd.lookup(0).stream().findFirst().orElse(new CountMinSketch());
+
+      System.out.println(totalSketch);
 
       // Print estimated frequency
       System.out.println("+----------------+--------+");
