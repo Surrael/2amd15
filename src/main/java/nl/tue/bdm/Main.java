@@ -1,62 +1,74 @@
 package nl.tue.bdm;
 
 import scala.Tuple2;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.spark.SparkConf;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.streaming.Durations;
+import org.apache.spark.streaming.api.java.JavaDStream;
+import org.apache.spark.streaming.api.java.JavaPairDStream;
+import org.apache.spark.streaming.api.java.JavaReceiverInputDStream;
+import org.apache.spark.streaming.api.java.JavaStreamingContext;
 
 public class Main {
   public static void main(String[] args) throws InterruptedException {
-    double epsilion = 0.005;
+    double epsilon = 0.005;
     double confidence = 0.999999999999;
 
-    SparkConf sparkConf = new SparkConf().setMaster("local[*]").setAppName("sketchSongID");
+    // Define the Spark configuration
+    SparkConf sparkConf = new SparkConf().setMaster("local[2]").setAppName("distWordCount");
 
-    JavaSparkContext sc = new JavaSparkContext(sparkConf);
+    // Create the context with a 1-second batch size
+    JavaStreamingContext ssc = new JavaStreamingContext(sparkConf, Durations.seconds(1));
+    ssc.checkpoint("checkpointdir");
 
-    JavaRDD<String> lines = sc.textFile("plays.csv");
+    // Create a DStream that connects to hostname:port, like localhost:9999
+    JavaReceiverInputDStream<String> lines = ssc.socketTextStream("localhost", 9999);
 
-    JavaRDD<Integer> songIds = lines.map(line -> Integer.valueOf(line.split(",")[0]));
+    // Split each line into song IDs
+    JavaDStream<Integer> songIds = lines.map(line -> Integer.valueOf(line.split(",")[0]));
 
-    // Initalize no. of rows/columns and the hash functions for each row
-    CountMinSketch.init(epsilion, confidence);
+    // Initialize CountMinSketch parameters
+    CountMinSketch.init(epsilon, confidence);
 
-    JavaRDD<CountMinSketch> localSketches = songIds.mapPartitions(partition -> {
-      CountMinSketch localSketch = new CountMinSketch();
-      while (partition.hasNext())
-        localSketch.add(partition.next());
-      return Arrays.asList(localSketch).iterator();
+    // Convert each song ID into a CountMinSketch update with key 0 (global sketch)
+    JavaPairDStream<Integer, CountMinSketch> sketches = songIds.mapToPair(
+        songId -> {
+          CountMinSketch localSketch = new CountMinSketch();
+          localSketch.add(songId);
+          return new Tuple2<>(0, localSketch); // Key 0 ensures one global sketch
+        });
+
+    // Define update function for merging sketches across batches
+    Function2<List<CountMinSketch>, Optional<CountMinSketch>, Optional<CountMinSketch>> updateFunction = (newSketches,
+        currentState) -> {
+      CountMinSketch updatedSketch = currentState.orElse(new CountMinSketch());
+      for (CountMinSketch sketch : newSketches) {
+        updatedSketch = CountMinSketch.merge(updatedSketch, sketch);
+      }
+      return Optional.of(updatedSketch);
+    };
+
+    // Maintain stateful CountMinSketch
+    JavaPairDStream<Integer, CountMinSketch> statefulSketch = sketches.updateStateByKey(updateFunction);
+
+    // Query and print estimates
+    statefulSketch.foreachRDD(rdd -> {
+      int songId = 12157;
+      CountMinSketch totalSketch = rdd.lookup(0).stream().findFirst().orElse(new CountMinSketch());
+
+      // Print estimated frequency
+      System.out.println("+----------------+--------+");
+      System.out.printf("| %-14s | %-6s |%n", "Metric", "Value");
+      System.out.println("+----------------+--------+");
+      System.out.printf("| %-14s | %-6d |%n", "Estimate", totalSketch.getFreq(songId));
+      System.out.println("+----------------+--------+");
     });
 
-    CountMinSketch totalSketch = localSketches.reduce((sketch1, sketch2) -> {
-      return CountMinSketch.merge(sketch1, sketch2);
-    });
-
-    // Find the actual amount of plays for each song
-    JavaPairRDD<Integer, Integer> songIdTuples = songIds.mapToPair(songId -> new Tuple2<Integer, Integer>(songId, 1));
-
-    // Print result (actual vs. estimate)
-    int songid = 12157;
-
-    List<Integer> counts = songIdTuples.reduceByKey(Integer::sum).lookup(songid);
-    int actual = counts.isEmpty() ? 0 : counts.get(0);
-    int estimate = totalSketch.getFreq(songid);
-
-    String header = "+----------------+--------+";
-    String rowFormat = "| %-14s | %-6d |%n";
-
-    System.out.println(header);
-    System.out.printf("| %-14s | %-6s |%n", "Metric", "Value");
-    System.out.println(header);
-    System.out.printf(rowFormat, "Actual Count", actual);
-    System.out.printf(rowFormat, "Estimate", estimate);
-    System.out.println(header);
-
-    sc.close();
+    // Start the Spark Streaming Context
+    ssc.start();
+    ssc.awaitTermination();
   }
-
 }
