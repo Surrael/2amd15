@@ -34,6 +34,7 @@ public class Main {
             "WHERE count = " + maxCount);
 
     mostPlayedSongs.show();
+    System.out.println("Amount of plays: " + maxCount);
     spark.stop();
   }
 }
