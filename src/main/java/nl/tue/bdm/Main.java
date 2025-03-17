@@ -11,8 +11,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 
 public class Main {
   public static void main(String[] args) throws InterruptedException {
-    double epsilion = 0.005;
-    double confidence = 0.999999999999;
+    double epsilion = 0.1;
+    double confidence = 0.99;
 
     SparkConf sparkConf = new SparkConf().setMaster("local[*]").setAppName("sketchSongID");
 
@@ -20,7 +20,7 @@ public class Main {
 
     JavaRDD<String> lines = sc.textFile("plays.csv");
 
-    JavaRDD<Integer> songIds = lines.map(line -> Integer.valueOf(line.split(",")[0]));
+    JavaRDD<Integer> songIds = lines.map(line -> Integer.valueOf(line.split(",")[1].trim()));
 
     // Initalize no. of rows/columns and the hash functions for each row
     CountMinSketch.init(epsilion, confidence);
@@ -39,8 +39,10 @@ public class Main {
     // Find the actual amount of plays for each song
     JavaPairRDD<Integer, Integer> songIdTuples = songIds.mapToPair(songId -> new Tuple2<Integer, Integer>(songId, 1));
 
+    System.out.println(totalSketch);
+
     // Print result (actual vs. estimate)
-    int songid = 12157;
+    int songid = 3031;
 
     List<Integer> counts = songIdTuples.reduceByKey(Integer::sum).lookup(songid);
     int actual = counts.isEmpty() ? 0 : counts.get(0);

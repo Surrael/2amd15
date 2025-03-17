@@ -21,6 +21,7 @@ public class CountMinSketch implements Serializable {
   public static void init(double eps, double conf) {
     rows = (int) Math.ceil(2 / eps);
     width = (int) Math.ceil(-Math.log(1 - conf) / Math.log(2)) * 1000;
+    // width = 3000;
     initHashFunctions(rows);
   }
 
@@ -68,7 +69,7 @@ public class CountMinSketch implements Serializable {
   private int hash(int value, int row) {
     // h(x) = ((a * x + b) % p) % width
 
-    long intermediate = (long) a[row] * value + b[row]; // prevent overflow with long
+    long intermediate = (long) a[row] * value + b[row]; // prevent overflow
     return (int) ((intermediate % p[row] + p[row]) % p[row] % width);
 
   }
