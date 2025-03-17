@@ -28,7 +28,7 @@ public class Main {
     JavaReceiverInputDStream<String> lines = ssc.socketTextStream("localhost", 9999);
 
     // Split each line into song IDs
-    JavaDStream<Integer> songIds = lines.map(line -> Integer.valueOf(line.split(",")[0]));
+    JavaDStream<Integer> songIds = lines.map(line -> Integer.valueOf(line.split(",")[1].trim()));
 
     // Initialize CountMinSketch parameters
     CountMinSketch.init(epsilon, confidence);
