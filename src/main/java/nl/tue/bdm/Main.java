@@ -1,39 +1,13 @@
 package nl.tue.bdm;
 
-import scala.Tuple2;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
-/**
- * (eps, conf) = (0.1, 0.9)
- * +----------------+--------+
- * | Metric | Value |
- * +----------------+--------+
- * | Actual Count | 7841 |
- * | Estimate | 9558 |
- * +----------------+--------+
- *
- * (eps, conf) = (0.1, 0.99)
- * +----------------+--------+
- * | Metric | Value |
- * +----------------+--------+
- * | Actual Count | 7841 |
- * | Estimate | 8662 |
- * +----------------+--------+
- * 
- * (eps, conf) = (0.01, 0.9)
- * +----------------+--------+
- * | Metric | Value |
- * +----------------+--------+
- * | Actual Count | 7841 |
- * | Estimate | 9155 |
- * +----------------+--------+
- */
+import scala.Tuple2;
 
 public class Main {
   public static void main(String[] args) throws InterruptedException {
@@ -58,31 +32,18 @@ public class Main {
       return Arrays.asList(localSketch).iterator();
     });
 
-    CountMinSketch totalSketch = localSketches.reduce((sketch1, sketch2) -> {
-      return CountMinSketch.merge(sketch1, sketch2);
-    });
+    CountMinSketch totalSketch = localSketches.reduce(CountMinSketch::merge);
 
-    // Find the actual amount of plays for each song
-    JavaPairRDD<Integer, Integer> songIdTuples = songIds.mapToPair(songId -> new Tuple2<Integer, Integer>(songId, 1));
+    // Estimate song frequencies
+    JavaPairRDD<Integer, Integer> estimatedCounts = songIds.distinct()
+        .mapToPair(song -> new Tuple2<>(song, totalSketch.getFreq(song)));
 
-    System.out.println(totalSketch);
+    // Find the most frequently played song
+    Tuple2<Integer, Integer> mostListenedSong = estimatedCounts
+        .reduce((song1, song2) -> song1._2 > song2._2 ? song1 : song2);
 
-    // Print result (actual vs. estimate)
-    int songid = 3031;
-
-    List<Integer> counts = songIdTuples.reduceByKey(Integer::sum).lookup(songid);
-    int actual = counts.isEmpty() ? 0 : counts.get(0);
-    int estimate = totalSketch.getFreq(songid);
-
-    String header = "+----------------+--------+";
-    String rowFormat = "| %-14s | %-6d |%n";
-
-    System.out.println(header);
-    System.out.printf("| %-14s | %-6s |%n", "Metric", "Value");
-    System.out.println(header);
-    System.out.printf(rowFormat, "Actual Count", actual);
-    System.out.printf(rowFormat, "Estimate", estimate);
-    System.out.println(header);
+    System.out.println("Most listened song is songID " + mostListenedSong._1 +
+        " with estimated " + mostListenedSong._2 + " plays.");
 
     sc.close();
   }
