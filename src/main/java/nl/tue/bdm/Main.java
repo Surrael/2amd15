@@ -9,10 +9,36 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+/**
+ * (eps, conf) = (0.1, 0.9)
+ * +----------------+--------+
+ * | Metric | Value |
+ * +----------------+--------+
+ * | Actual Count | 7841 |
+ * | Estimate | 9558 |
+ * +----------------+--------+
+ *
+ * (eps, conf) = (0.1, 0.99)
+ * +----------------+--------+
+ * | Metric | Value |
+ * +----------------+--------+
+ * | Actual Count | 7841 |
+ * | Estimate | 8662 |
+ * +----------------+--------+
+ * 
+ * (eps, conf) = (0.01, 0.9)
+ * +----------------+--------+
+ * | Metric | Value |
+ * +----------------+--------+
+ * | Actual Count | 7841 |
+ * | Estimate | 9155 |
+ * +----------------+--------+
+ */
+
 public class Main {
   public static void main(String[] args) throws InterruptedException {
-    double epsilion = 0.1;
-    double confidence = 0.99;
+    double epsilion = 0.01;
+    double confidence = 0.9;
 
     SparkConf sparkConf = new SparkConf().setMaster("local[*]").setAppName("sketchSongID");
 
