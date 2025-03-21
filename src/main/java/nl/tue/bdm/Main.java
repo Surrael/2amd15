@@ -28,10 +28,25 @@ public class Main {
     songIDs.take(10).forEach(System.out::println);
 
     // Initalize rows/columns and the hash functions for each row
-    // int rows = (int) Math.ceil(2 / epsilon);
-    // int width = (int) Math.ceil(-Math.log(1 - confidence) / Math.log(2)) * 1000;
-    int rows = 100;
-    int width = 100;
+
+    // Case 1: (ε,δ)=(0.1, 0.1) -> Actual: 95, Estimate: 3309296
+    // double epsilon = 0.1;
+    // double confidence = 0.1;
+
+    // Case 2: (ε,δ)=(0.01, 0.1) -> Actual: 95, Estimate: 3303190
+    // double epsilon = 0.01;
+    // double confidence = 0.1;
+
+    // Case 3: (ε,δ)=(0.1, 0.01)  -> Actual: 95, Estimate: 1980904
+    double epsilon = 0.1;
+    double confidence = 0.01;
+
+    int rows = (int) Math.ceil(Math.exp(1) / epsilon);
+    int width = (int) Math.ceil(Math.log(1 / confidence));
+
+    // int rows = 100;
+    // int width = 100;
+
     CountMinSketch.init(rows, width);
 
     // For the partitions we add it to a sketch
